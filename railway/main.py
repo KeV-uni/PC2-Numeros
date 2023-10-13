@@ -149,7 +149,14 @@ def upload():
         print("Error occurred")
         print(err)
 
-    return prediccion
+    return f"""
+        <html>
+        <head></head>
+        <body>
+            <p>{prediccion}</p>
+        </bo1dy>
+        </html>
+    """
 
 
 @app.route("/prepare", methods=["GET"])
