@@ -1,14 +1,14 @@
-import tempfile
-import os
-from flask import Flask, request, redirect, send_file
-from skimage import io
 import base64
 import glob
+import os
 from io import BytesIO
-
+import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 from PIL import Image
-import numpy as np
+from flask import Flask, request, send_file
+from skimage import io
+
 app = Flask(__name__)
 
 main_html = """
@@ -29,7 +29,7 @@ main_html = """
 
         letra = getRndLetter();
 
-        document.getElementById('mensaje').innerHTML  = 'Dibuje un numero del 1 al 9: '     ;
+        document.getElementById('mensaje').innerHTML  = 'Dibuje un numero del 0 al 9';
         document.getElementById('letra').value = letra;
 
         $('#myCanvas').mousedown(function (e) {
@@ -104,47 +104,53 @@ main_html = """
 
 """
 
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
 @app.route("/")
 def main():
+    print("aaaaaaaaaaaaaaaaaaaaaaaaa")
     return main_html
 
 @app.route("/predict", methods=["POST"])
 def upload():
     prediccion=-1
     try:
+        print("aaaaaaaaaaaaaaaaaaaaaaaaa")
         # check if the post request has the file part
         img_data = request.form.get("myImage").replace("data:image/png;base64,", "")
         img_bytes = base64.b64decode(img_data)
         image = Image.open(BytesIO(img_bytes))
+
+        # Redimensiona la imagen a 28x28 píxeles
         image = image.resize((28, 28), Image.ANTIALIAS)
-        image = image.convert("L")  # Convierte a escala de grises (un solo canal)
-        # Convierte la imagen a un arreglo NumPy
+        # Convierte la imagen a un array de NumPy y asegura que tenga una sola dimensión de color
         image_array = np.array(image)
 
-        # Si la imagen está en blanco y negro, podrías necesitar añadir una dimensión adicional
-        if len(image_array.shape) == 2:
-            image_array = image_array[:, :, np.newaxis]
+        plt.imshow(image_array, cmap='gray')
+        plt.show()
 
-        # letra = request.form.get("letra")
-        # print(letra)
-        # with tempfile.NamedTemporaryFile(
-        #     delete=False, mode="w+b", suffix=".png", dir=str(letra)
-        # ) as fh:
-        #     fh.write(base64.b64decode(img_data))
-        # file = request.files['myImage']
-        # print("Image uploaded")
+        # Asegura que la imagen sea de forma (28, 28, 1) si originalmente tenía una forma de (200, 200, 4)
+        if image_array.shape[-1] == 4:
+            # Si la imagen tiene 4 canales (RGBA), mantén solo el canal de escala de grises (primer canal)
+            # print(image_array[:, :, 3])
+            # plt.imshow(image_array[:, :, 3])
+            # plt.show()
+            image_array = image_array[:, :, 3] / 255
+            image_array = image_array[:, :, None]
+            print(image_array)
+
+
+        plt.imshow(image_array, cmap='gray')
+        plt.show()
+
         model = tf.keras.models.load_model('mi_modelo.h5')
-
-        print(image_array, type(image_array))
-
-
-
 
         # Realizar predicciones
         salida = model.predict(image_array[None, :, :, :])[0]
         print(salida.argmax())
         prediccion=salida.argmax()
+
     except Exception as err:
         print("Error occurred")
         print(err)
