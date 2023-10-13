@@ -17,17 +17,17 @@ main_html = """
     var ctx;
 
     function getRndLetter() {
-        var letters = ["1","2", "3", "4"];
+        var letters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
         return letters[Math.floor(Math.random() * letters.length)];
     }
 
     function InitThis() {
         ctx = document.getElementById('myCanvas').getContext("2d");
 
-        letra = getRndLetter();
+        numero = getRndLetter();
 
-        document.getElementById('mensaje').innerHTML  = 'Dibujando la letra: ' + letra;
-        document.getElementById('letra').value = letra;
+        document.getElementById('mensaje').innerHTML  = 'Dibujando el numero: ' + numero;
+        document.getElementById('numero').value = numero;
 
         $('#myCanvas').mousedown(function (e) {
             mousePressed = true;
@@ -52,8 +52,8 @@ main_html = """
     function Draw(x, y, isDown) {
         if (isDown) {
             ctx.beginPath();
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 11;
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 10;
             ctx.lineJoin = "round";
             ctx.moveTo(lastX, lastY);
             ctx.lineTo(x, y);
@@ -64,12 +64,11 @@ main_html = """
     }
 
     function clearArea() {
-        // Use the identity matrix while clearing the canvas
+        // Utilizando la matriz de identidad mientras se limpia el lienzo.
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     }
 
-    //https://www.askingbox.com/tutorial/send-html5-canvas-as-image-to-server
     function prepareImg() {
         var canvas = document.getElementById('myCanvas');
         document.getElementById('myImage').value = canvas.toDataURL();
@@ -89,11 +88,12 @@ main_html = """
             <br/>
             <button onclick="javascript:clearArea();return false;">Borrar</button>
         </div>
+	<br/>
         <div align="center">
         <form method="post" action="upload" onsubmit="javascript:prepareImg();"  enctype="multipart/form-data">
-        <input id="letra" name="letra" type="hidden" value="">
+        <input id="numero" name="numero" type="hidden" value="">
         <input id="myImage" name="myImage" type="hidden" value="">
-        <input id="bt_upload" type="submit" value="Enviar">
+        <input id="bt_upload" type="submit" value="Enviar!">
         </form>
     </div>
 </body>
@@ -112,10 +112,10 @@ def upload():
     try:
         # check if the post request has the file part
         img_data = request.form.get("myImage").replace("data:image/png;base64,", "")
-        letra = request.form.get("letra")
-        print(letra)
+        numero = request.form.get("numero")
+        print(numero)
         with tempfile.NamedTemporaryFile(
-            delete=False, mode="w+b", suffix=".png", dir=str(letra)
+            delete=False, mode="w+b", suffix=".png", dir=str(numero)
         ) as fh:
             fh.write(base64.b64decode(img_data))
         # file = request.files['myImage']
@@ -130,19 +130,19 @@ def upload():
 @app.route("/prepare", methods=["GET"])
 def prepare_dataset():
     images = []
-    letters = []
-    folderNames = ["1", "2", "3", "4"]
-    for letter in folderNames:
-        filelist = glob.glob("{}/*.png".format(letter))
+    digitos = []
+    folderNames = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    for digito in folderNames:
+        filelist = glob.glob("{}/*.png".format(digito))
         images_read = io.concatenate_images(io.imread_collection(filelist))
         images_read = images_read[:, :, :, 3]
-        letters_read = np.array([letter] * images_read.shape[0])
+        letters_read = np.array([digito] * images_read.shape[0])
         images.append(images_read)
-        letters.append(letters_read)
+        digitos.append(letters_read)
     images = np.vstack(images)
-    letters = np.concatenate(letters)
+    digitos = np.concatenate(digitos)
     np.save("X.npy", images)
-    np.save("y.npy", letters)
+    np.save("y.npy", digitos)
     return "OK!"
 
 
@@ -157,9 +157,8 @@ def download_y():
 
 
 if __name__ == "__main__":
-    folderNames = ["1", "2", "3", "4"]
+    folderNames = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     for folderName in folderNames:
         if not os.path.exists(str(folderName)):
             os.mkdir(str(folderName))
-    # app.run(debug=False, host="0.0.0.0", port=8000)
     app.run()
